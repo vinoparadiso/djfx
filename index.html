@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RETROGRID VFX</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:'Courier New',monospace}
+body{cursor:none}
+canvas{display:block;width:100%;height:100%}
+
+#ctrl{
+  position:fixed;top:24px;right:24px;
+  background:rgba(0,0,0,0.9);
+  border:1px solid rgba(255,255,255,0.05);
+  padding:22px 20px;width:250px;z-index:100;
+  transition:opacity .5s ease,transform .5s ease;
+}
+#ctrl.off{opacity:0;transform:translateX(24px);pointer-events:none}
+.ct{color:rgba(255,255,255,0.2);font-size:8px;letter-spacing:5px;text-transform:uppercase;margin-bottom:18px}
+.cr{margin-bottom:14px}
+.cr label{display:flex;justify-content:space-between;color:rgba(255,255,255,0.25);font-size:8px;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
+.cr label span{color:rgba(255,255,255,0.5);font-variant-numeric:tabular-nums;min-width:28px;text-align:right}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:1px;background:rgba(255,255,255,0.07);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;background:rgba(255,255,255,0.35);border-radius:0;cursor:pointer}
+input[type=range]::-moz-range-thumb{width:10px;height:10px;background:rgba(255,255,255,0.35);border:none;border-radius:0;cursor:pointer}
+.crow{display:flex;gap:5px;margin-top:6px}
+.cb{width:18px;height:18px;border:1px solid rgba(255,255,255,0.06);cursor:pointer;transition:border-color .2s,transform .15s}
+.cb:hover{transform:scale(1.2)}
+.cb.on{border-color:rgba(255,255,255,0.45)}
+
+#hint{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.1);font-size:8px;letter-spacing:3px;text-transform:uppercase;z-index:100;transition:opacity 3s;pointer-events:none}
+
+#beats{position:fixed;bottom:18px;right:24px;display:flex;gap:3px;z-index:100;align-items:flex-end}
+.bb{width:3px;height:3px;background:rgba(255,255,255,0.05);transition:all .06s ease-out}
+.bb.on{height:10px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hint">press H for controls</div>
+<div id="beats"><div class="bb"></div><div class="bb"></div><div class="bb"></div><div class="bb"></div></div>
+<div id="ctrl" class="off">
+  <div class="ct">Retrogrid VFX</div>
+  <div class="cr"><label>BPM <span id="vb">128</span></label><input type="range" id="rb" min="100" max="150" value="128"></div>
+  <div class="cr"><label>Scale <span id="vs">1.0</span></label><input type="range" id="rs" min="0.3" max="2.5" value="1.0" step="0.1"></div>
+  <div class="cr"><label>Rotation <span id="vr">1.0</span></label><input type="range" id="rr" min="0" max="3" value="1.0" step="0.1"></div>
+  <div class="cr"><label>Drift <span id="vd">1.0</span></label><input type="range" id="rd" min="0" max="3" value="1.0" step="0.1"></div>
+  <div class="cr"><label>Beat Pulse <span id="vp">1.0</span></label><input type="range" id="rp" min="0" max="2" value="1.0" step="0.1"></div>
+  <div class="cr"><label>Glow <span id="vg">1.0</span></label><input type="range" id="rg" min="0" max="3" value="1.0" step="0.1"></div>
+  <div class="cr"><label>Density <span id="vn">1.0</span></label><input type="range" id="rn" min="0.3" max="2" value="1.0" step="0.1"></div>
+  <div class="cr"><label>Accent</label>
+    <div class="crow">
+      <div class="cb on" data-k="cyan" style="background:#00e5ff"></div>
+      <div class="cb" data-k="amber" style="background:#ffb74d"></div>
+      <div class="cb" data-k="rose" style="background:#ff6b9d"></div>
+      <div class="cb" data-k="lime" style="background:#b2ff59"></div>
+      <div class="cb" data-k="ice" style="background:#90caf9"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ── Canvas ── */
+const cv = document.getElementById('c');
+const cx = cv.getContext('2d');
+let W, H, MX, MY, MD;
+
+function resize(){
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = W; cv.height = H;
+  MX = W/2; MY = H/2;
+  MD = Math.min(W, H);
+  buildElements();
+}
+window.addEventListener('resize', resize);
+
+/* ── Parameters ── */
+const P = { bpm:128, scale:1, rot:1, drift:1, pulse:1, glow:1, den:1, ck:'cyan' };
+
+/* ── Palettes ── */
+const PAL = {
+  cyan:  { p:[0,229,255],   s:[0,140,170] },
+  amber: { p:[255,183,77],  s:[190,120,40] },
+  rose:  { p:[255,107,157], s:[190,60,110] },
+  lime:  { p:[178,255,89],  s:[120,190,50] },
+  ice:   { p:[144,202,249], s:[100,160,200] }
+};
+
+function rgba(c,a){ return 'rgba('+c[0]+','+c[1]+','+c[2]+','+a+')'; }
+
+/* ── Beat System ── */
+let bPhase = 0, bCount = 0, bPulse = 0, bBar = 0;
+const beatEls = document.querySelectorAll('.bb');
+
+function triggerBeat(){
+  bCount++;
+  bBar = (bCount-1) % 4;
+  const down = bBar === 0;
+  bPulse = down ? 1.0 : 0.5;
+
+  beatEls.forEach(function(el,i){
+    if(i === bBar){
+      el.classList.add('on');
+      var pal = PAL[P.ck];
+      el.style.background = rgba(pal.p, down ? 0.6 : 0.35);
+      el.style.height = (down ? 12 : 8) + 'px';
+    } else {
+      el.classList.remove('on');
+      el.style.background = 'rgba(255,255,255,0.05)';
+      el.style.height = '3px';
+    }
+  });
+
+  /* Ripple on downbeat */
+  if(down){
+    ripples.push({ sz: MD*0.04*P.scale, mx: MD*0.75*P.scale, a: 0.12*P.pulse });
+  }
+  /* Smaller ripple every beat */
+  ripples.push({ sz: MD*0.02*P.scale, mx: MD*0.4*P.scale, a: 0.06*P.pulse });
+}
+
+/* ── Ripples ── */
+var ripples = [];
+
+/* ── Elements ── */
+var rings = [], orbs = [], drift = [];
+
+function buildElements(){
+  var d = P.den;
+
+  /* Central rings */
+  rings = [];
+  var rc = Math.round(7 * d);
+  for(var i=0;i<rc;i++){
+    var t = rc>1 ? i/(rc-1) : 0;
+    rings.push({
+      bs: (0.07 + t*0.52) * MD,
+      asp: i%4===0 ? 1.4 + (i%3)*0.25 : 1,
+      ro: i * Math.PI/rc + (i%2 ? Math.PI/(rc*2) : 0),
+      rs: (i%2 ? 1 : -1) * (0.06 + i*0.014),
+      bo: 0.05 + (1-t)*0.22,
+      lw: 0.6 + (1-t)*0.8,
+      dash: i%6===0 ? [6,4] : null
+    });
+  }
+
+  /* Orbiters */
+  orbs = [];
+  var oc = Math.round(10 * d);
+  for(var i=0;i<oc;i++){
+    orbs.push({
+      or: (0.14 + Math.random()*0.34) * MD,
+      oa: Math.random()*Math.PI*2,
+      os: (0.12 + Math.random()*0.22) * (Math.random()>0.5?1:-1),
+      sz: (0.015 + Math.random()*0.035) * MD,
+      asp: Math.random()>0.6 ? 1.3+Math.random()*0.7 : 1,
+      sr: Math.random()*Math.PI*2,
+      srs: (0.15+Math.random()*0.5) * (Math.random()>0.5?1:-1),
+      op: 0.06 + Math.random()*0.16,
+      ph: Math.random()*Math.PI*2
+    });
+  }
+
+  /* Drifters */
+  drift = [];
+  var dc = Math.round(5 * d);
+  for(var i=0;i<dc;i++){
+    drift.push({
+      x: Math.random()*W, y: Math.random()*H,
+      vx: (Math.random()-0.5)*0.35,
+      vy: (Math.random()-0.5)*0.35,
+      sz: (0.008 + Math.random()*0.02) * MD,
+      asp: 1 + Math.random()*2.5,
+      r: Math.random()*Math.PI,
+      rs: (Math.random()-0.5)*0.12,
+      op: 0.02 + Math.random()*0.05
+    });
+  }
+}
+
+/* ── Slow Modulation (keeps it alive over hours) ── */
+function mods(t){
+  var s = t * 0.00005;
+  return {
+    rm: Math.sin(s*7.3)*0.25 + Math.sin(s*3.1+1)*0.15,
+    sm: Math.sin(s*5.7+2)*0.04,
+    dm: Math.sin(s*4.1+0.5)*0.35,
+    om: Math.sin(s*6.3+3)*0.12,
+    /* Ultra-slow cycle (~3 min period) for long sessions */
+    uc: Math.sin(t*0.000005*3.7)*0.5+0.5
+  };
+}
+
+/* ── Drawing Helpers ── */
+function wireRect(x,y,w,h,rot,col,a,lw,blur,dash){
+  cx.save();
+  cx.translate(x,y);
+  cx.rotate(rot);
+  cx.globalAlpha = Math.max(0, Math.min(1, a));
+  if(blur > 0){
+    cx.shadowColor = rgba(col, 0.7);
+    cx.shadowBlur = Math.min(blur * 14, 32);
+  }
+  cx.strokeStyle = rgba(col, 1);
+  cx.lineWidth = lw;
+  if(dash) cx.setLineDash(dash);
+  cx.strokeRect(-w/2, -h/2, w, h);
+  if(dash) cx.setLineDash([]);
+  cx.restore();
+}
+
+function dot(x,y,r,col,a){
+  cx.save();
+  cx.globalAlpha = Math.max(0, Math.min(1, a));
+  cx.fillStyle = rgba(col, 1);
+  cx.beginPath();
+  cx.arc(x, y, Math.max(0.4, r), 0, Math.PI*2);
+  cx.fill();
+  cx.restore();
+}
+
+/* ── Main Loop ── */
+var prevT = 0, startT = 0, lastDen = P.den;
+
+function loop(t){
+  requestAnimationFrame(loop);
+  if(!startT) startT = t;
+  var dt = Math.min(t - prevT, 50);
+  prevT = t;
+  if(dt <= 0) return;
+  var ds = dt / 1000;
+  var el = t - startT;
+
+  var pal = PAL[P.ck];
+  var m = mods(el);
+
+  /* Rebuild if density changed */
+  if(Math.abs(P.den - lastDen) > 0.15){ lastDen = P.den; buildElements(); }
+
+  /* Beat update */
+  bPhase += ds * P.bpm / 60;
+  if(bPhase >= 1){ bPhase -= Math.floor(bPhase); triggerBeat(); }
+  bPulse *= Math.exp(-7 * ds);
+  if(bPulse < 0.001) bPulse = 0;
+
+  var ep = bPulse * P.pulse; // effective pulse
+
+  /* ── Clear ── */
+  cx.globalAlpha = 1;
+  cx.shadowBlur = 0;
+  cx.fillStyle = '#000000';
+  cx.fillRect(0, 0, W, H);
+
+  /* ── Background Grid Dots ── */
+  var gs = 55 * P.scale;
+  if(gs > 8){
+    var ga = 0.02 + ep * 0.012;
+    var gr = 0.6 + ep * 0.4;
+    var sx = MX % gs, sy = MY % gs;
+    cx.shadowBlur = 0;
+    for(var gx = sx; gx < W; gx += gs){
+      for(var gy = sy; gy < H; gy += gs){
+        dot(gx, gy, gr, pal.s, ga);
+      }
+    }
+  }
+
+  /* ── Vignette ── */
+  var vg = cx.createRadialGradient(MX, MY, MD*0.15, MX, MY, MD*0.85);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, 'rgba(0,0,0,0.5)');
+  cx.globalAlpha = 1;
+  cx.fillStyle = vg;
+  cx.fillRect(0, 0, W, H);
+
+  /* ── Drifters (behind everything) ── */
+  for(var i=0;i<drift.length;i++){
+    var d = drift[i];
+    d.x += d.vx * P.drift * (1 + m.dm) * ds * 60;
+    d.y += d.vy * P.drift * (1 + m.dm) * ds * 60;
+    d.r += d.rs * P.rot * ds;
+    var mg = d.sz * 3;
+    if(d.x < -mg) d.x = W + mg;
+    if(d.x > W + mg) d.x = -mg;
+    if(d.y < -mg) d.y = H + mg;
+    if(d.y > H + mg) d.y = -mg;
+    var dsz = d.sz * P.scale;
+    wireRect(d.x, d.y, dsz, dsz*d.asp, d.r, pal.s,
+      d.op * (1 + m.om*0.5) * (1 + ep*0.3), 0.4, P.glow*0.2);
+  }
+
+  /* ── Beat Ripples ── */
+  ripples = ripples.filter(function(r){
+    r.sz += MD * 0.0028 * ds * 60;
+    r.a *= Math.exp(-3.5 * ds);
+    return r.a > 0.002 && r.sz < r.mx;
+  });
+  for(var i=0;i<ripples.length;i++){
+    var r = ripples[i];
+    wireRect(MX, MY, r.sz, r.sz, 0, pal.p, r.a, 0.5, P.glow*0.35);
+  }
+
+  /* ── Central Rings ── */
+  var rBase = el * 0.001 * P.rot;
+  for(var i=0;i<rings.length;i++){
+    var rn = rings[i];
+    var rmf = 1 + m.rm * (i%2 ? 1 : -1);
+    /* Ultra-slow modulation: shift which rings are brighter */
+    var ucF = 1 + (m.uc - 0.5) * 0.15 * Math.sin(i * 1.2);
+    var rot = rn.ro + rBase * rn.rs * rmf;
+    var bsc = 1 + ep * 0.07 * (i%2 ? -0.4 : 1);
+    var ssc = 1 + m.sm * (i%3===0 ? 1 : 0);
+    var sz = rn.bs * P.scale * bsc * ssc;
+    wireRect(MX, MY, sz, sz*rn.asp, rot, pal.p,
+      rn.bo * ucF * (1 + m.om*0.3) * (1 + ep*0.35),
+      rn.lw,
+      P.glow * (0.4 + (1 - i/Math.max(1,rings.length))*0.6),
+      rn.dash);
+  }
+
+  /* ── Orbiters ── */
+  for(var i=0;i<orbs.length;i++){
+    var o = orbs[i];
+    o.oa += o.os * P.rot * ds * (1 + m.rm*0.2);
+    o.sr += o.srs * P.rot * ds;
+    var radM = 1 + Math.sin(el*0.00025 + o.ph) * 0.07 * P.drift;
+    var rad = o.or * P.scale * radM;
+    var ox = MX + Math.cos(o.oa) * rad;
+    var oy = MY + Math.sin(o.oa) * rad;
+    var depth = 0.4 + 0.6 * (0.5 + 0.5*Math.sin(o.oa + 0.8));
+    var obsc = 1 + ep * 0.12 * depth;
+    var osz = o.sz * P.scale * obsc;
+    wireRect(ox, oy, osz, osz*o.asp, o.sr, pal.p,
+      o.op * depth * (1 + m.om*0.2) * (1 + ep*0.25),
+      0.6, P.glow * 0.35 * depth);
+  }
+
+  /* ── Center Crosshair ── */
+  var chS = 14 * P.scale;
+  var chA = 0.07 + ep * 0.08;
+  cx.save();
+  cx.strokeStyle = rgba(pal.p, 1);
+  cx.lineWidth = 0.5;
+  cx.globalAlpha = chA;
+  if(P.glow > 0){ cx.shadowColor = rgba(pal.p, 0.5); cx.shadowBlur = P.glow * 6; }
+  cx.beginPath();
+  cx.moveTo(MX - chS, MY); cx.lineTo(MX - 3, MY);
+  cx.moveTo(MX + 3, MY); cx.lineTo(MX + chS, MY);
+  cx.moveTo(MX, MY - chS); cx.lineTo(MX, MY - 3);
+  cx.moveTo(MX, MY + 3); cx.lineTo(MX, MY + chS);
+  cx.stroke();
+  cx.restore();
+
+  /* ── Corner Brackets ── */
+  var bkS = 28 * P.scale;
+  var bkI = 36;
+  var bkA = 0.06 + ep * 0.04;
+  cx.save();
+  cx.strokeStyle = rgba(pal.s, 1);
+  cx.lineWidth = 0.7;
+  cx.globalAlpha = bkA;
+  if(P.glow > 0){ cx.shadowColor = rgba(pal.s, 0.4); cx.shadowBlur = P.glow * 3; }
+  /* TL */
+  cx.beginPath(); cx.moveTo(bkI, bkI+bkS); cx.lineTo(bkI, bkI); cx.lineTo(bkI+bkS, bkI); cx.stroke();
+  /* TR */
+  cx.beginPath(); cx.moveTo(W-bkI-bkS, bkI); cx.lineTo(W-bkI, bkI); cx.lineTo(W-bkI, bkI+bkS); cx.stroke();
+  /* BL */
+  cx.beginPath(); cx.moveTo(bkI, H-bkI-bkS); cx.lineTo(bkI, H-bkI); cx.lineTo(bkI+bkS, H-bkI); cx.stroke();
+  /* BR */
+  cx.beginPath(); cx.moveTo(W-bkI-bkS, H-bkI); cx.lineTo(W-bkI, H-bkI); cx.lineTo(W-bkI, H-bkI-bkS); cx.stroke();
+  cx.restore();
+
+  /* ── Beat Flash ── */
+  if(ep > 0.08){
+    cx.save();
+    cx.globalAlpha = ep * 0.025;
+    cx.fillStyle = rgba(pal.p, 1);
+    cx.fillRect(0, 0, W, H);
+    cx.restore();
+  }
+
+  /* ── Thin scan overlay (barely perceptible) ── */
+  cx.save();
+  cx.globalAlpha = 0.018;
+  cx.fillStyle = '#000';
+  for(var sy2=0; sy2<H; sy2+=2){
+    cx.fillRect(0, sy2, W, 1);
+  }
+  cx.restore();
+}
+
+/* ── Init ── */
+resize();
+requestAnimationFrame(loop);
+
+/* ── Controls ── */
+var ctrlEl = document.getElementById('ctrl');
+var hintEl = document.getElementById('hint');
+var ctrlOn = false;
+
+function toggle(){
+  ctrlOn = !ctrlOn;
+  ctrlEl.classList.toggle('off', !ctrlOn);
+  document.body.style.cursor = ctrlOn ? 'default' : 'none';
+  hintEl.style.opacity = '0';
+}
+
+document.addEventListener('keydown', function(e){
+  if(e.key === 'h' || e.key === 'H') toggle();
+});
+cv.addEventListener('dblclick', toggle);
+
+setTimeout(function(){ hintEl.style.opacity = '0'; }, 6000);
+
+/* Slider wiring */
+function bind(rid, key, vid, fmt){
+  var sl = document.getElementById('r'+rid);
+  var vl = document.getElementById('v'+vid);
+  sl.addEventListener('input', function(){
+    var v = parseFloat(sl.value);
+    P[key] = v;
+    vl.textContent = fmt ? fmt(v) : v.toFixed(1);
+  });
+}
+bind('b','bpm','b', function(v){return v.toFixed(0)});
+bind('s','scale','s');
+bind('r','rot','r');
+bind('d','drift','d');
+bind('p','pulse','p');
+bind('g','glow','g');
+bind('n','den','n');
+
+/* Color buttons */
+document.querySelectorAll('.cb').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    document.querySelectorAll('.cb').forEach(function(b){ b.classList.remove('on'); });
+    btn.classList.add('on');
+    P.ck = btn.dataset.k;
+  });
+});
+
+})();
+</script>
+</body>
+</html>
