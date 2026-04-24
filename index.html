@@ -180,7 +180,6 @@ function resize(){
 }
 window.addEventListener('resize', resize);
 
-/* ── Parameters ── */
 var P = {
   bpm:128, scale:1, rot:1, drift:1, pulse:1, glow:1, den:1,
   ck:'cyan', shape:'rect',
@@ -189,7 +188,6 @@ var P = {
   auto:true, autoCycle:180
 };
 
-/* ── Palettes ── */
 var PAL = {
   cyan:  { p:[0,229,255],   s:[0,140,170] },
   amber: { p:[255,183,77],  s:[190,120,40] },
@@ -200,11 +198,8 @@ var PAL = {
 var CKS = Object.keys(PAL);
 var SHAPES = ['rect','square','tri','circle','diamond','pentagon','hexagon','star'];
 function rgba(c,a){ return 'rgba('+c[0]+','+c[1]+','+c[2]+','+a+')'; }
-
-/* Shadow blur helper — compensates for DPR so glow looks identical to 1x */
 function sblur(v){ cx.shadowBlur = Math.min(v * DPR, 120); }
 
-/* ── Toasts ── */
 var toastBox = document.getElementById('toasts');
 var toastTimer = null;
 function toast(msg){
@@ -234,23 +229,43 @@ var LOGO_AR = 2.15;
 var logoReady = true, logoIsImage = false;
 
 function drawLogoCanvas(hW, hH){
-  cx.fillStyle = '#000000';
-  cx.beginPath();
-  cx.ellipse(0, 0, hW, hH, 0, 0, Math.PI * 2);
-  cx.fill();
-  cx.strokeStyle = rgba(PAL[P.ck].s, 0.22);
-  cx.lineWidth = 0.7;
-  cx.beginPath();
-  cx.ellipse(0, 0, hW - 1, hH - 1, 0, 0, Math.PI * 2);
-  cx.stroke();
-  var fs = Math.max(8, hH * 0.52);
+  /* No oval — just the text, clean and bold */
   var tc = P.bcol === 'accent' ? PAL[P.ck].p : (PAL[P.bcol] ? PAL[P.bcol].p : [255,255,255]);
   cx.fillStyle = rgba(tc, 1);
-  cx.font = 'bold ' + fs + 'px "Courier New",monospace';
+
+  /* TEMPO — large bold condensed */
+  var fs1 = Math.max(10, hH * 0.58);
+  cx.font = '900 ' + fs1 + 'px "Arial Black", "Helvetica Neue", Impact, sans-serif';
   cx.textAlign = 'center';
-  cx.textBaseline = 'middle';
-  cx.fillText('TEMPO', 0, -hH * 0.22);
-  cx.fillText('SCHMEMPO', 0, hH * 0.28);
+  cx.textBaseline = 'alphabetic';
+
+  /* Draw TEMPO with tight letter spacing */
+  var word1 = 'TEMPO';
+  var spacing1 = fs1 * -0.035;
+  var totalW1 = 0;
+  for(var i = 0; i < word1.length; i++) totalW1 += cx.measureText(word1[i]).width + (i < word1.length - 1 ? spacing1 : 0);
+  var startX1 = -totalW1 / 2;
+  var y1 = -hH * 0.08;
+  for(var i = 0; i < word1.length; i++){
+    var cw = cx.measureText(word1[i]).width;
+    cx.fillText(word1[i], startX1 + cw / 2, y1);
+    startX1 += cw + spacing1;
+  }
+
+  /* SCHMEMPO — slightly smaller, tighter */
+  var fs2 = Math.max(7, hH * 0.38);
+  cx.font = '800 ' + fs2 + 'px "Arial Black", "Helvetica Neue", Impact, sans-serif';
+  var word2 = 'SCHMEMPO';
+  var spacing2 = fs2 * -0.04;
+  var totalW2 = 0;
+  for(var i = 0; i < word2.length; i++) totalW2 += cx.measureText(word2[i]).width + (i < word2.length - 1 ? spacing2 : 0);
+  var startX2 = -totalW2 / 2;
+  var y2 = y1 + fs2 * 0.95;
+  for(var i = 0; i < word2.length; i++){
+    var cw = cx.measureText(word2[i]).width;
+    cx.fillText(word2[i], startX2 + cw / 2, y2);
+    startX2 += cw + spacing2;
+  }
 }
 
 /* ── Beat ── */
@@ -329,7 +344,6 @@ function buildElements(){
   }
 }
 
-/* ── Modulation ── */
 function mods(t){
   var s = t * 0.00005;
   return {
@@ -503,6 +517,7 @@ function drawBrand(el, ep){
   var hH = baseH * breathe * beatSc;
   var rBase = el * 0.001 * P.rot;
 
+  /* Wireframe accent ellipses — these stay as the visual frame */
   for(var i = 0; i < 3; i++){
     var sc = 1.12 + i * 0.14;
     var rot = rBase * (i % 2 ? 0.025 : -0.025) * (i + 1);
@@ -523,6 +538,7 @@ function drawBrand(el, ep){
   cx.beginPath(); cx.ellipse(0, 0, hW * 1.55, hH * 1.55, 0, 0, Math.PI * 2); cx.stroke();
   cx.setLineDash([]); cx.restore();
 
+  /* Logo text — no oval background */
   cx.save(); cx.translate(MX, MY);
   cx.globalAlpha = (0.88 + ep * 0.12) * brandFade;
   cx.shadowColor = rgba(pal.p, 0.85);
@@ -530,6 +546,7 @@ function drawBrand(el, ep){
   if(logoIsImage) cx.drawImage(logoImg, -hW, -hH, hW * 2, hH * 2);
   else drawLogoCanvas(hW, hH);
 
+  /* Screen composite tint */
   var tcol = P.bcol === 'accent' ? PAL[P.ck].p : (PAL[P.bcol] ? PAL[P.bcol].p : [255,255,255]);
   cx.globalAlpha = 0.08 * P.bglow * brandFade;
   cx.globalCompositeOperation = 'screen';
@@ -541,6 +558,7 @@ function drawBrand(el, ep){
   cx.globalCompositeOperation = 'source-over';
   cx.restore();
 
+  /* Pole dots */
   var dr = 1.2 + ep * 0.8, da = 0.15 * brandFade;
   drawDot(MX + hW, MY, dr, pal.p, da);
   drawDot(MX - hW, MY, dr, pal.p, da);
@@ -682,7 +700,6 @@ function loop(t){
   cx.restore();
 }
 
-/* ── Init ── */
 resize();
 requestAnimationFrame(loop);
 
@@ -729,7 +746,6 @@ function syncAllUI(){
   document.getElementById('autorow').style.pointerEvents = P.auto ? 'auto' : 'none';
 }
 
-/* ── Controls ── */
 var ctrlEl = document.getElementById('ctrl');
 var hintEl = document.getElementById('hint');
 var ctrlOn = false;
@@ -781,7 +797,6 @@ document.addEventListener('keydown', function(e){
 cv.addEventListener('dblclick', toggleCtrl);
 setTimeout(function(){ hintEl.style.opacity = '0'; }, 7000);
 
-/* Sliders */
 function bindSlider(rid, key, vid, fmt){
   var sl = document.getElementById('r' + rid), vl = document.getElementById('v' + vid);
   sl.addEventListener('input', function(){
@@ -796,21 +811,18 @@ bindSlider('g','glow','g'); bindSlider('n','den','n');
 bindSlider('bs','bsize','bs'); bindSlider('bg','bglow','bg');
 bindSlider('acl','autoCycle','vacl', function(v){ return formatCycle(v); });
 
-/* Shape buttons */
 document.querySelectorAll('.sb[data-sh]').forEach(function(btn){
   btn.addEventListener('click', function(){
     document.querySelectorAll('.sb[data-sh]').forEach(function(b){b.classList.remove('on')});
     btn.classList.add('on'); P.shape = btn.dataset.sh;
   });
 });
-/* Accent color */
 document.querySelectorAll('.cb[data-k]').forEach(function(btn){
   btn.addEventListener('click', function(){
     document.querySelectorAll('.cb[data-k]').forEach(function(b){b.classList.remove('on')});
     btn.classList.add('on'); P.ck = btn.dataset.k;
   });
 });
-/* Logo colour */
 document.querySelectorAll('.cb[data-bc]').forEach(function(btn){
   btn.addEventListener('click', function(){
     document.querySelectorAll('.cb[data-bc]').forEach(function(b){b.classList.remove('on')});
@@ -818,7 +830,6 @@ document.querySelectorAll('.cb[data-bc]').forEach(function(btn){
   });
 });
 
-/* Toggles */
 document.getElementById('tspiral').addEventListener('click', function(){
   P.spiral = !P.spiral; this.classList.toggle('on', P.spiral);
 });
@@ -850,7 +861,6 @@ document.getElementById('tauto').addEventListener('click', function(){
   document.getElementById('autorow').style.pointerEvents = P.auto ? 'auto' : 'none';
 });
 
-/* ── Presets ── */
 function getPresetObj(){
   return {
     bpm:P.bpm, scale:P.scale, rot:P.rot, drift:P.drift,
