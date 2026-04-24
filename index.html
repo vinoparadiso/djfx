@@ -12,26 +12,48 @@ canvas{display:block;width:100%;height:100%}
 
 #ctrl{
   position:fixed;top:24px;right:24px;
-  background:rgba(0,0,0,0.9);
+  background:rgba(0,0,0,0.92);
   border:1px solid rgba(255,255,255,0.05);
-  padding:22px 20px;width:250px;z-index:100;
+  padding:20px 18px;width:260px;z-index:100;
   transition:opacity .5s ease,transform .5s ease;
+  max-height:calc(100vh - 48px);overflow-y:auto;
 }
+#ctrl::-webkit-scrollbar{width:0}
 #ctrl.off{opacity:0;transform:translateX(24px);pointer-events:none}
-.ct{color:rgba(255,255,255,0.2);font-size:8px;letter-spacing:5px;text-transform:uppercase;margin-bottom:18px}
-.cr{margin-bottom:14px}
-.cr label{display:flex;justify-content:space-between;color:rgba(255,255,255,0.25);font-size:8px;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
-.cr label span{color:rgba(255,255,255,0.5);font-variant-numeric:tabular-nums;min-width:28px;text-align:right}
+.ct{color:rgba(255,255,255,0.18);font-size:8px;letter-spacing:5px;text-transform:uppercase;margin-bottom:16px}
+.cr{margin-bottom:12px}
+.cr label{display:flex;justify-content:space-between;color:rgba(255,255,255,0.22);font-size:8px;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px}
+.cr label span{color:rgba(255,255,255,0.45);font-variant-numeric:tabular-nums;min-width:28px;text-align:right}
 input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:1px;background:rgba(255,255,255,0.07);outline:none}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;background:rgba(255,255,255,0.35);border-radius:0;cursor:pointer}
-input[type=range]::-moz-range-thumb{width:10px;height:10px;background:rgba(255,255,255,0.35);border:none;border-radius:0;cursor:pointer}
-.crow{display:flex;gap:5px;margin-top:6px}
-.cb{width:18px;height:18px;border:1px solid rgba(255,255,255,0.06);cursor:pointer;transition:border-color .2s,transform .15s}
-.cb:hover{transform:scale(1.2)}
-.cb.on{border-color:rgba(255,255,255,0.45)}
-
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;background:rgba(255,255,255,0.3);border-radius:0;cursor:pointer}
+input[type=range]::-moz-range-thumb{width:10px;height:10px;background:rgba(255,255,255,0.3);border:none;border-radius:0;cursor:pointer}
+.crow{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap}
+.cb{width:18px;height:18px;border:1px solid rgba(255,255,255,0.06);cursor:pointer;transition:border-color .2s,transform .15s;flex-shrink:0}
+.cb:hover{transform:scale(1.15)}
+.cb.on{border-color:rgba(255,255,255,0.4)}
+.sb{
+  height:20px;padding:0 7px;
+  border:1px solid rgba(255,255,255,0.06);
+  background:transparent;color:rgba(255,255,255,0.22);
+  font-family:inherit;font-size:7px;letter-spacing:1.5px;
+  cursor:pointer;transition:all .2s;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.sb:hover{border-color:rgba(255,255,255,0.18);color:rgba(255,255,255,0.4)}
+.sb.on{border-color:rgba(255,255,255,0.38);color:rgba(255,255,255,0.65);background:rgba(255,255,255,0.04)}
+.tb{
+  height:22px;padding:0 10px;
+  border:1px solid rgba(255,255,255,0.06);
+  background:transparent;color:rgba(255,255,255,0.18);
+  font-family:inherit;font-size:7px;letter-spacing:2px;text-transform:uppercase;
+  cursor:pointer;transition:all .2s;flex-shrink:0;
+  display:flex;align-items:center;gap:5px;
+}
+.tb:hover{border-color:rgba(255,255,255,0.18);color:rgba(255,255,255,0.35)}
+.tb.on{border-color:rgba(255,255,255,0.32);color:rgba(255,255,255,0.6);background:rgba(255,255,255,0.04)}
+.td{color:rgba(255,255,255,0.1);font-size:6px;letter-spacing:1px}
+.sep{height:1px;background:rgba(255,255,255,0.04);margin:14px 0}
 #hint{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.1);font-size:8px;letter-spacing:3px;text-transform:uppercase;z-index:100;transition:opacity 3s;pointer-events:none}
-
 #beats{position:fixed;bottom:18px;right:24px;display:flex;gap:3px;z-index:100;align-items:flex-end}
 .bb{width:3px;height:3px;background:rgba(255,255,255,0.05);transition:all .06s ease-out}
 .bb.on{height:10px}
@@ -50,6 +72,15 @@ input[type=range]::-moz-range-thumb{width:10px;height:10px;background:rgba(255,2
   <div class="cr"><label>Beat Pulse <span id="vp">1.0</span></label><input type="range" id="rp" min="0" max="2" value="1.0" step="0.1"></div>
   <div class="cr"><label>Glow <span id="vg">1.0</span></label><input type="range" id="rg" min="0" max="3" value="1.0" step="0.1"></div>
   <div class="cr"><label>Density <span id="vn">1.0</span></label><input type="range" id="rn" min="0.3" max="2" value="1.0" step="0.1"></div>
+  <div class="sep"></div>
+  <div class="cr"><label>Shape</label>
+    <div class="crow">
+      <div class="sb on" data-sh="rect">RECT</div>
+      <div class="sb" data-sh="square">SQ</div>
+      <div class="sb" data-sh="tri">TRI</div>
+      <div class="sb" data-sh="circle">CIR</div>
+    </div>
+  </div>
   <div class="cr"><label>Accent</label>
     <div class="crow">
       <div class="cb on" data-k="cyan" style="background:#00e5ff"></div>
@@ -59,55 +90,72 @@ input[type=range]::-moz-range-thumb{width:10px;height:10px;background:rgba(255,2
       <div class="cb" data-k="ice" style="background:#90caf9"></div>
     </div>
   </div>
+  <div class="sep"></div>
+  <div class="cr">
+    <div class="crow">
+      <div class="tb" id="tspiral">SPIRAL</div>
+      <div class="tb" id="tstrobe">STROBE <span class="td">&#9888;</span></div>
+    </div>
+  </div>
+  <div class="cr" id="sraterow" style="opacity:0.2;pointer-events:none">
+    <label>Strobe Rate</label>
+    <div class="crow">
+      <div class="sb on" data-sr="1">EVERY BEAT</div>
+      <div class="sb" data-sr="2">EVERY 2</div>
+      <div class="sb" data-sr="4">DOWNBEAT</div>
+    </div>
+  </div>
 </div>
 
 <script>
 (function(){
 'use strict';
 
-/* ── Canvas ── */
-const cv = document.getElementById('c');
-const cx = cv.getContext('2d');
-let W, H, MX, MY, MD;
+var cv = document.getElementById('c');
+var cx = cv.getContext('2d');
+var W, H, MX, MY, MD;
 
 function resize(){
   W = window.innerWidth; H = window.innerHeight;
   cv.width = W; cv.height = H;
-  MX = W/2; MY = H/2;
+  MX = W / 2; MY = H / 2;
   MD = Math.min(W, H);
   buildElements();
 }
 window.addEventListener('resize', resize);
 
 /* ── Parameters ── */
-const P = { bpm:128, scale:1, rot:1, drift:1, pulse:1, glow:1, den:1, ck:'cyan' };
+var P = {
+  bpm:128, scale:1, rot:1, drift:1, pulse:1, glow:1, den:1,
+  ck:'cyan', shape:'rect',
+  spiral:false, strobe:false, srate:1
+};
 
 /* ── Palettes ── */
-const PAL = {
+var PAL = {
   cyan:  { p:[0,229,255],   s:[0,140,170] },
   amber: { p:[255,183,77],  s:[190,120,40] },
   rose:  { p:[255,107,157], s:[190,60,110] },
   lime:  { p:[178,255,89],  s:[120,190,50] },
   ice:   { p:[144,202,249], s:[100,160,200] }
 };
-
 function rgba(c,a){ return 'rgba('+c[0]+','+c[1]+','+c[2]+','+a+')'; }
 
-/* ── Beat System ── */
-let bPhase = 0, bCount = 0, bPulse = 0, bBar = 0;
-const beatEls = document.querySelectorAll('.bb');
+/* ── Beat ── */
+var bPhase = 0, bCount = 0, bPulse = 0, bBar = 0;
+var strobeFlash = 0;
+var beatEls = document.querySelectorAll('.bb');
 
 function triggerBeat(){
   bCount++;
-  bBar = (bCount-1) % 4;
-  const down = bBar === 0;
+  bBar = (bCount - 1) % 4;
+  var down = bBar === 0;
   bPulse = down ? 1.0 : 0.5;
 
-  beatEls.forEach(function(el,i){
+  beatEls.forEach(function(el, i){
     if(i === bBar){
       el.classList.add('on');
-      var pal = PAL[P.ck];
-      el.style.background = rgba(pal.p, down ? 0.6 : 0.35);
+      el.style.background = rgba(PAL[P.ck].p, down ? 0.6 : 0.35);
       el.style.height = (down ? 12 : 8) + 'px';
     } else {
       el.classList.remove('on');
@@ -116,90 +164,82 @@ function triggerBeat(){
     }
   });
 
-  /* Ripple on downbeat */
-  if(down){
-    ripples.push({ sz: MD*0.04*P.scale, mx: MD*0.75*P.scale, a: 0.12*P.pulse });
-  }
-  /* Smaller ripple every beat */
+  if(down) ripples.push({ sz: MD*0.04*P.scale, mx: MD*0.75*P.scale, a: 0.12*P.pulse });
   ripples.push({ sz: MD*0.02*P.scale, mx: MD*0.4*P.scale, a: 0.06*P.pulse });
+
+  if(P.strobe && (bCount % P.srate === 0)) strobeFlash = 1.0;
 }
 
-/* ── Ripples ── */
 var ripples = [];
 
 /* ── Elements ── */
-var rings = [], orbs = [], drift = [];
+var rings = [], orbs = [], drifters = [];
 
 function buildElements(){
   var d = P.den;
-
-  /* Central rings */
   rings = [];
   var rc = Math.round(7 * d);
-  for(var i=0;i<rc;i++){
-    var t = rc>1 ? i/(rc-1) : 0;
+  for(var i = 0; i < rc; i++){
+    var t = rc > 1 ? i / (rc - 1) : 0;
     rings.push({
-      bs: (0.07 + t*0.52) * MD,
-      asp: i%4===0 ? 1.4 + (i%3)*0.25 : 1,
-      ro: i * Math.PI/rc + (i%2 ? Math.PI/(rc*2) : 0),
-      rs: (i%2 ? 1 : -1) * (0.06 + i*0.014),
-      bo: 0.05 + (1-t)*0.22,
-      lw: 0.6 + (1-t)*0.8,
-      dash: i%6===0 ? [6,4] : null
+      bs: (0.07 + t * 0.52) * MD,
+      asp: i % 4 === 0 ? 1.4 + (i % 3) * 0.25 : 1,
+      ro: i * Math.PI / rc + (i % 2 ? Math.PI / (rc * 2) : 0),
+      rs: (i % 2 ? 1 : -1) * (0.06 + i * 0.014),
+      bo: 0.05 + (1 - t) * 0.22,
+      lw: 0.6 + (1 - t) * 0.8,
+      dash: i % 6 === 0 ? [6, 4] : null
     });
   }
 
-  /* Orbiters */
   orbs = [];
   var oc = Math.round(10 * d);
-  for(var i=0;i<oc;i++){
+  for(var i = 0; i < oc; i++){
     orbs.push({
-      or: (0.14 + Math.random()*0.34) * MD,
-      oa: Math.random()*Math.PI*2,
-      os: (0.12 + Math.random()*0.22) * (Math.random()>0.5?1:-1),
-      sz: (0.015 + Math.random()*0.035) * MD,
-      asp: Math.random()>0.6 ? 1.3+Math.random()*0.7 : 1,
-      sr: Math.random()*Math.PI*2,
-      srs: (0.15+Math.random()*0.5) * (Math.random()>0.5?1:-1),
-      op: 0.06 + Math.random()*0.16,
-      ph: Math.random()*Math.PI*2
+      or: (0.14 + Math.random() * 0.34) * MD,
+      oa: Math.random() * Math.PI * 2,
+      os: (0.12 + Math.random() * 0.22) * (Math.random() > 0.5 ? 1 : -1),
+      sz: (0.015 + Math.random() * 0.035) * MD,
+      asp: Math.random() > 0.6 ? 1.3 + Math.random() * 0.7 : 1,
+      sr: Math.random() * Math.PI * 2,
+      srs: (0.15 + Math.random() * 0.5) * (Math.random() > 0.5 ? 1 : -1),
+      op: 0.06 + Math.random() * 0.16,
+      ph: Math.random() * Math.PI * 2
     });
   }
 
-  /* Drifters */
-  drift = [];
+  drifters = [];
   var dc = Math.round(5 * d);
-  for(var i=0;i<dc;i++){
-    drift.push({
-      x: Math.random()*W, y: Math.random()*H,
-      vx: (Math.random()-0.5)*0.35,
-      vy: (Math.random()-0.5)*0.35,
-      sz: (0.008 + Math.random()*0.02) * MD,
-      asp: 1 + Math.random()*2.5,
-      r: Math.random()*Math.PI,
-      rs: (Math.random()-0.5)*0.12,
-      op: 0.02 + Math.random()*0.05
+  for(var i = 0; i < dc; i++){
+    drifters.push({
+      x: Math.random() * W, y: Math.random() * H,
+      vx: (Math.random() - 0.5) * 0.35,
+      vy: (Math.random() - 0.5) * 0.35,
+      sz: (0.008 + Math.random() * 0.02) * MD,
+      asp: 1 + Math.random() * 2.5,
+      r: Math.random() * Math.PI,
+      rs: (Math.random() - 0.5) * 0.12,
+      op: 0.02 + Math.random() * 0.05
     });
   }
 }
 
-/* ── Slow Modulation (keeps it alive over hours) ── */
+/* ── Slow Modulation ── */
 function mods(t){
   var s = t * 0.00005;
   return {
-    rm: Math.sin(s*7.3)*0.25 + Math.sin(s*3.1+1)*0.15,
-    sm: Math.sin(s*5.7+2)*0.04,
-    dm: Math.sin(s*4.1+0.5)*0.35,
-    om: Math.sin(s*6.3+3)*0.12,
-    /* Ultra-slow cycle (~3 min period) for long sessions */
-    uc: Math.sin(t*0.000005*3.7)*0.5+0.5
+    rm: Math.sin(s * 7.3) * 0.25 + Math.sin(s * 3.1 + 1) * 0.15,
+    sm: Math.sin(s * 5.7 + 2) * 0.04,
+    dm: Math.sin(s * 4.1 + 0.5) * 0.35,
+    om: Math.sin(s * 6.3 + 3) * 0.12,
+    uc: Math.sin(t * 0.000005 * 3.7) * 0.5 + 0.5
   };
 }
 
-/* ── Drawing Helpers ── */
-function wireRect(x,y,w,h,rot,col,a,lw,blur,dash){
+/* ── Shape Renderer ── */
+function wireShape(x, y, w, h, rot, shape, col, a, lw, blur, dash){
   cx.save();
-  cx.translate(x,y);
+  cx.translate(x, y);
   cx.rotate(rot);
   cx.globalAlpha = Math.max(0, Math.min(1, a));
   if(blur > 0){
@@ -209,19 +249,90 @@ function wireRect(x,y,w,h,rot,col,a,lw,blur,dash){
   cx.strokeStyle = rgba(col, 1);
   cx.lineWidth = lw;
   if(dash) cx.setLineDash(dash);
-  cx.strokeRect(-w/2, -h/2, w, h);
+  cx.beginPath();
+
+  switch(shape){
+    case 'rect':
+      cx.rect(-w / 2, -h / 2, w, h);
+      break;
+    case 'square':
+      var sq = Math.min(w, h);
+      cx.rect(-sq / 2, -sq / 2, sq, sq);
+      break;
+    case 'tri':
+      var tsz = Math.min(w, h) / 2;
+      cx.moveTo(0, -tsz);
+      cx.lineTo(tsz * 0.866, tsz * 0.5);
+      cx.lineTo(-tsz * 0.866, tsz * 0.5);
+      cx.closePath();
+      break;
+    case 'circle':
+      cx.arc(0, 0, Math.max(0.5, Math.min(w, h) / 2), 0, Math.PI * 2);
+      break;
+  }
+
+  cx.stroke();
   if(dash) cx.setLineDash([]);
   cx.restore();
 }
 
-function dot(x,y,r,col,a){
+function drawDot(x, y, r, col, a){
   cx.save();
   cx.globalAlpha = Math.max(0, Math.min(1, a));
   cx.fillStyle = rgba(col, 1);
   cx.beginPath();
-  cx.arc(x, y, Math.max(0.4, r), 0, Math.PI*2);
+  cx.arc(x, y, Math.max(0.4, r), 0, Math.PI * 2);
   cx.fill();
   cx.restore();
+}
+
+/* ── Spiral ── */
+function drawSpiral(el, ep){
+  var pal = PAL[P.ck];
+  var arms = 2;
+  var turns = 3.5;
+  var maxR = MD * 0.32 * P.scale;
+  var pts = 300;
+  var baseRot = el * 0.0003 * P.rot;
+  var breathe = 1 + Math.sin(el * 0.0004) * 0.06;
+  var beatExp = 1 + ep * 0.15;
+
+  for(var a = 0; a < arms; a++){
+    var armOff = (a / arms) * Math.PI * 2;
+    cx.save();
+    cx.translate(MX, MY);
+    cx.rotate(baseRot + armOff);
+    cx.globalAlpha = 0.09 + ep * 0.08;
+    cx.strokeStyle = rgba(pal.p, 1);
+    cx.lineWidth = 0.8;
+    cx.shadowColor = rgba(pal.p, 0.5);
+    cx.shadowBlur = Math.min(P.glow * 10, 30);
+    cx.beginPath();
+
+    for(var i = 0; i <= pts; i++){
+      var t = i / pts;
+      var angle = t * turns * Math.PI * 2;
+      var r = t * maxR * breathe * beatExp;
+      var px = Math.cos(angle) * r;
+      var py = Math.sin(angle) * r;
+      if(i === 0) cx.moveTo(px, py);
+      else cx.lineTo(px, py);
+    }
+    cx.stroke();
+    cx.restore();
+  }
+
+  /* Tip dots */
+  var tipR = maxR * breathe * beatExp;
+  for(var a = 0; a < arms; a++){
+    var armOff = (a / arms) * Math.PI * 2;
+    var tipAng = baseRot + armOff + turns * Math.PI * 2;
+    drawDot(
+      MX + Math.cos(tipAng) * tipR,
+      MY + Math.sin(tipAng) * tipR,
+      1.5 + ep * 1, pal.p, 0.15 + ep * 0.1
+    );
+  }
 }
 
 /* ── Main Loop ── */
@@ -239,16 +350,18 @@ function loop(t){
   var pal = PAL[P.ck];
   var m = mods(el);
 
-  /* Rebuild if density changed */
   if(Math.abs(P.den - lastDen) > 0.15){ lastDen = P.den; buildElements(); }
 
-  /* Beat update */
+  /* Beat phase */
   bPhase += ds * P.bpm / 60;
   if(bPhase >= 1){ bPhase -= Math.floor(bPhase); triggerBeat(); }
   bPulse *= Math.exp(-7 * ds);
   if(bPulse < 0.001) bPulse = 0;
+  var ep = bPulse * P.pulse;
 
-  var ep = bPulse * P.pulse; // effective pulse
+  /* Strobe decay */
+  strobeFlash *= Math.exp(-30 * ds);
+  if(strobeFlash < 0.005) strobeFlash = 0;
 
   /* ── Clear ── */
   cx.globalAlpha = 1;
@@ -256,7 +369,7 @@ function loop(t){
   cx.fillStyle = '#000000';
   cx.fillRect(0, 0, W, H);
 
-  /* ── Background Grid Dots ── */
+  /* ── Grid Dots ── */
   var gs = 55 * P.scale;
   if(gs > 8){
     var ga = 0.02 + ep * 0.012;
@@ -265,82 +378,84 @@ function loop(t){
     cx.shadowBlur = 0;
     for(var gx = sx; gx < W; gx += gs){
       for(var gy = sy; gy < H; gy += gs){
-        dot(gx, gy, gr, pal.s, ga);
+        drawDot(gx, gy, gr, pal.s, ga);
       }
     }
   }
 
   /* ── Vignette ── */
-  var vg = cx.createRadialGradient(MX, MY, MD*0.15, MX, MY, MD*0.85);
+  var vg = cx.createRadialGradient(MX, MY, MD * 0.15, MX, MY, MD * 0.85);
   vg.addColorStop(0, 'rgba(0,0,0,0)');
   vg.addColorStop(1, 'rgba(0,0,0,0.5)');
   cx.globalAlpha = 1;
   cx.fillStyle = vg;
   cx.fillRect(0, 0, W, H);
 
-  /* ── Drifters (behind everything) ── */
-  for(var i=0;i<drift.length;i++){
-    var d = drift[i];
-    d.x += d.vx * P.drift * (1 + m.dm) * ds * 60;
-    d.y += d.vy * P.drift * (1 + m.dm) * ds * 60;
-    d.r += d.rs * P.rot * ds;
-    var mg = d.sz * 3;
-    if(d.x < -mg) d.x = W + mg;
-    if(d.x > W + mg) d.x = -mg;
-    if(d.y < -mg) d.y = H + mg;
-    if(d.y > H + mg) d.y = -mg;
-    var dsz = d.sz * P.scale;
-    wireRect(d.x, d.y, dsz, dsz*d.asp, d.r, pal.s,
-      d.op * (1 + m.om*0.5) * (1 + ep*0.3), 0.4, P.glow*0.2);
+  /* ── Drifters ── */
+  for(var i = 0; i < drifters.length; i++){
+    var dr = drifters[i];
+    dr.x += dr.vx * P.drift * (1 + m.dm) * ds * 60;
+    dr.y += dr.vy * P.drift * (1 + m.dm) * ds * 60;
+    dr.r += dr.rs * P.rot * ds;
+    var mg = dr.sz * 3;
+    if(dr.x < -mg) dr.x = W + mg;
+    if(dr.x > W + mg) dr.x = -mg;
+    if(dr.y < -mg) dr.y = H + mg;
+    if(dr.y > H + mg) dr.y = -mg;
+    var dsz = dr.sz * P.scale;
+    wireShape(dr.x, dr.y, dsz, dsz * dr.asp, dr.r, P.shape, pal.s,
+      dr.op * (1 + m.om * 0.5) * (1 + ep * 0.3), 0.4, P.glow * 0.2, null);
   }
 
-  /* ── Beat Ripples ── */
-  ripples = ripples.filter(function(r){
-    r.sz += MD * 0.0028 * ds * 60;
-    r.a *= Math.exp(-3.5 * ds);
-    return r.a > 0.002 && r.sz < r.mx;
+  /* ── Ripples ── */
+  ripples = ripples.filter(function(rp){
+    rp.sz += MD * 0.0028 * ds * 60;
+    rp.a *= Math.exp(-3.5 * ds);
+    return rp.a > 0.002 && rp.sz < rp.mx;
   });
-  for(var i=0;i<ripples.length;i++){
-    var r = ripples[i];
-    wireRect(MX, MY, r.sz, r.sz, 0, pal.p, r.a, 0.5, P.glow*0.35);
+  for(var i = 0; i < ripples.length; i++){
+    var rp = ripples[i];
+    wireShape(MX, MY, rp.sz, rp.sz, 0, P.shape, pal.p, rp.a, 0.5, P.glow * 0.35, null);
   }
+
+  /* ── Spiral ── */
+  if(P.spiral) drawSpiral(el, ep);
 
   /* ── Central Rings ── */
   var rBase = el * 0.001 * P.rot;
-  for(var i=0;i<rings.length;i++){
+  for(var i = 0; i < rings.length; i++){
     var rn = rings[i];
-    var rmf = 1 + m.rm * (i%2 ? 1 : -1);
-    /* Ultra-slow modulation: shift which rings are brighter */
+    var rmf = 1 + m.rm * (i % 2 ? 1 : -1);
     var ucF = 1 + (m.uc - 0.5) * 0.15 * Math.sin(i * 1.2);
     var rot = rn.ro + rBase * rn.rs * rmf;
-    var bsc = 1 + ep * 0.07 * (i%2 ? -0.4 : 1);
-    var ssc = 1 + m.sm * (i%3===0 ? 1 : 0);
+    var bsc = 1 + ep * 0.07 * (i % 2 ? -0.4 : 1);
+    var ssc = 1 + m.sm * (i % 3 === 0 ? 1 : 0);
     var sz = rn.bs * P.scale * bsc * ssc;
-    wireRect(MX, MY, sz, sz*rn.asp, rot, pal.p,
-      rn.bo * ucF * (1 + m.om*0.3) * (1 + ep*0.35),
+    wireShape(MX, MY, sz, sz * rn.asp, rot, P.shape, pal.p,
+      rn.bo * ucF * (1 + m.om * 0.3) * (1 + ep * 0.35),
       rn.lw,
-      P.glow * (0.4 + (1 - i/Math.max(1,rings.length))*0.6),
+      P.glow * (0.4 + (1 - i / Math.max(1, rings.length)) * 0.6),
       rn.dash);
   }
 
   /* ── Orbiters ── */
-  for(var i=0;i<orbs.length;i++){
-    var o = orbs[i];
-    o.oa += o.os * P.rot * ds * (1 + m.rm*0.2);
-    o.sr += o.srs * P.rot * ds;
-    var radM = 1 + Math.sin(el*0.00025 + o.ph) * 0.07 * P.drift;
-    var rad = o.or * P.scale * radM;
-    var ox = MX + Math.cos(o.oa) * rad;
-    var oy = MY + Math.sin(o.oa) * rad;
-    var depth = 0.4 + 0.6 * (0.5 + 0.5*Math.sin(o.oa + 0.8));
+  for(var i = 0; i < orbs.length; i++){
+    var ob = orbs[i];
+    ob.oa += ob.os * P.rot * ds * (1 + m.rm * 0.2);
+    ob.sr += ob.srs * P.rot * ds;
+    var radM = 1 + Math.sin(el * 0.00025 + ob.ph) * 0.07 * P.drift;
+    var rad = ob.or * P.scale * radM;
+    var ox = MX + Math.cos(ob.oa) * rad;
+    var oy = MY + Math.sin(ob.oa) * rad;
+    var depth = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(ob.oa + 0.8));
     var obsc = 1 + ep * 0.12 * depth;
-    var osz = o.sz * P.scale * obsc;
-    wireRect(ox, oy, osz, osz*o.asp, o.sr, pal.p,
-      o.op * depth * (1 + m.om*0.2) * (1 + ep*0.25),
-      0.6, P.glow * 0.35 * depth);
+    var osz = ob.sz * P.scale * obsc;
+    wireShape(ox, oy, osz, osz * ob.asp, ob.sr, P.shape, pal.p,
+      ob.op * depth * (1 + m.om * 0.2) * (1 + ep * 0.25),
+      0.6, P.glow * 0.35 * depth, null);
   }
 
-  /* ── Center Crosshair ── */
+  /* ── Crosshair ── */
   var chS = 14 * P.scale;
   var chA = 0.07 + ep * 0.08;
   cx.save();
@@ -359,23 +474,20 @@ function loop(t){
   /* ── Corner Brackets ── */
   var bkS = 28 * P.scale;
   var bkI = 36;
-  var bkA = 0.06 + ep * 0.04;
   cx.save();
   cx.strokeStyle = rgba(pal.s, 1);
   cx.lineWidth = 0.7;
-  cx.globalAlpha = bkA;
+  cx.globalAlpha = 0.06 + ep * 0.04;
   if(P.glow > 0){ cx.shadowColor = rgba(pal.s, 0.4); cx.shadowBlur = P.glow * 3; }
-  /* TL */
-  cx.beginPath(); cx.moveTo(bkI, bkI+bkS); cx.lineTo(bkI, bkI); cx.lineTo(bkI+bkS, bkI); cx.stroke();
-  /* TR */
-  cx.beginPath(); cx.moveTo(W-bkI-bkS, bkI); cx.lineTo(W-bkI, bkI); cx.lineTo(W-bkI, bkI+bkS); cx.stroke();
-  /* BL */
-  cx.beginPath(); cx.moveTo(bkI, H-bkI-bkS); cx.lineTo(bkI, H-bkI); cx.lineTo(bkI+bkS, H-bkI); cx.stroke();
-  /* BR */
-  cx.beginPath(); cx.moveTo(W-bkI-bkS, H-bkI); cx.lineTo(W-bkI, H-bkI); cx.lineTo(W-bkI, H-bkI-bkS); cx.stroke();
+  cx.beginPath();
+  cx.moveTo(bkI, bkI + bkS); cx.lineTo(bkI, bkI); cx.lineTo(bkI + bkS, bkI);
+  cx.moveTo(W - bkI - bkS, bkI); cx.lineTo(W - bkI, bkI); cx.lineTo(W - bkI, bkI + bkS);
+  cx.moveTo(bkI, H - bkI - bkS); cx.lineTo(bkI, H - bkI); cx.lineTo(bkI + bkS, H - bkI);
+  cx.moveTo(W - bkI - bkS, H - bkI); cx.lineTo(W - bkI, H - bkI); cx.lineTo(W - bkI, H - bkI - bkS);
+  cx.stroke();
   cx.restore();
 
-  /* ── Beat Flash ── */
+  /* ── Beat Tint ── */
   if(ep > 0.08){
     cx.save();
     cx.globalAlpha = ep * 0.025;
@@ -384,12 +496,21 @@ function loop(t){
     cx.restore();
   }
 
-  /* ── Thin scan overlay (barely perceptible) ── */
+  /* ── Strobe Flash ── */
+  if(strobeFlash > 0.005){
+    cx.save();
+    cx.globalAlpha = strobeFlash * 0.6;
+    cx.fillStyle = '#ffffff';
+    cx.fillRect(0, 0, W, H);
+    cx.restore();
+  }
+
+  /* ── Scan Lines ── */
   cx.save();
-  cx.globalAlpha = 0.018;
-  cx.fillStyle = '#000';
-  for(var sy2=0; sy2<H; sy2+=2){
-    cx.fillRect(0, sy2, W, 1);
+  cx.globalAlpha = 0.016;
+  cx.fillStyle = '#000000';
+  for(var sl = 0; sl < H; sl += 2){
+    cx.fillRect(0, sl, W, 1);
   }
   cx.restore();
 }
@@ -403,7 +524,7 @@ var ctrlEl = document.getElementById('ctrl');
 var hintEl = document.getElementById('hint');
 var ctrlOn = false;
 
-function toggle(){
+function toggleCtrl(){
   ctrlOn = !ctrlOn;
   ctrlEl.classList.toggle('off', !ctrlOn);
   document.body.style.cursor = ctrlOn ? 'default' : 'none';
@@ -411,36 +532,71 @@ function toggle(){
 }
 
 document.addEventListener('keydown', function(e){
-  if(e.key === 'h' || e.key === 'H') toggle();
+  if(e.key === 'h' || e.key === 'H') toggleCtrl();
 });
-cv.addEventListener('dblclick', toggle);
-
+cv.addEventListener('dblclick', toggleCtrl);
 setTimeout(function(){ hintEl.style.opacity = '0'; }, 6000);
 
-/* Slider wiring */
-function bind(rid, key, vid, fmt){
-  var sl = document.getElementById('r'+rid);
-  var vl = document.getElementById('v'+vid);
+/* Sliders */
+function bindSlider(rid, key, vid, fmt){
+  var sl = document.getElementById('r' + rid);
+  var vl = document.getElementById('v' + vid);
   sl.addEventListener('input', function(){
     var v = parseFloat(sl.value);
     P[key] = v;
     vl.textContent = fmt ? fmt(v) : v.toFixed(1);
   });
 }
-bind('b','bpm','b', function(v){return v.toFixed(0)});
-bind('s','scale','s');
-bind('r','rot','r');
-bind('d','drift','d');
-bind('p','pulse','p');
-bind('g','glow','g');
-bind('n','den','n');
+bindSlider('b', 'bpm', 'b', function(v){ return v.toFixed(0); });
+bindSlider('s', 'scale', 's');
+bindSlider('r', 'rot', 'r');
+bindSlider('d', 'drift', 'd');
+bindSlider('p', 'pulse', 'p');
+bindSlider('g', 'glow', 'g');
+bindSlider('n', 'den', 'n');
+
+/* Shape buttons */
+document.querySelectorAll('.sb[data-sh]').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    document.querySelectorAll('.sb[data-sh]').forEach(function(b){ b.classList.remove('on'); });
+    btn.classList.add('on');
+    P.shape = btn.dataset.sh;
+  });
+});
 
 /* Color buttons */
-document.querySelectorAll('.cb').forEach(function(btn){
+document.querySelectorAll('.cb[data-k]').forEach(function(btn){
   btn.addEventListener('click', function(){
-    document.querySelectorAll('.cb').forEach(function(b){ b.classList.remove('on'); });
+    document.querySelectorAll('.cb[data-k]').forEach(function(b){ b.classList.remove('on'); });
     btn.classList.add('on');
     P.ck = btn.dataset.k;
+  });
+});
+
+/* Spiral toggle */
+var spBtn = document.getElementById('tspiral');
+spBtn.addEventListener('click', function(){
+  P.spiral = !P.spiral;
+  spBtn.classList.toggle('on', P.spiral);
+});
+
+/* Strobe toggle */
+var stBtn = document.getElementById('tstrobe');
+var srRow = document.getElementById('sraterow');
+stBtn.addEventListener('click', function(){
+  P.strobe = !P.strobe;
+  stBtn.classList.toggle('on', P.strobe);
+  srRow.style.opacity = P.strobe ? '1' : '0.2';
+  srRow.style.pointerEvents = P.strobe ? 'auto' : 'none';
+  if(!P.strobe) strobeFlash = 0;
+});
+
+/* Strobe rate buttons */
+document.querySelectorAll('.sb[data-sr]').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    document.querySelectorAll('.sb[data-sr]').forEach(function(b){ b.classList.remove('on'); });
+    btn.classList.add('on');
+    P.srate = parseInt(btn.dataset.sr);
   });
 });
 
