@@ -120,8 +120,20 @@ input[type=range]::-moz-range-thumb{width:9px;height:9px;background:rgba(255,255
     <input type="range" id="rbs" min="0.3" max="2" value="1.0" step="0.05">
   </div>
   <div class="cr" id="brandgrow" style="opacity:1;pointer-events:auto">
-    <label>Brand Glow <span id="vbg">1.2</span></label>
-    <input type="range" id="rbg" min="0" max="3" value="1.2" step="0.1">
+    <label>Brand Glow <span id="vbg">0.0</span></label>
+    <input type="range" id="rbg" min="0" max="3" value="0" step="0.1">
+  </div>
+  <div class="cr" id="brandcolrow" style="opacity:1;pointer-events:auto">
+    <label>Logo Colour</label>
+    <div class="crow">
+      <div class="cb on" data-bc="white" style="background:#ffffff"></div>
+      <div class="cb" data-bc="accent" style="background:linear-gradient(135deg,#00e5ff,#ffb74d,#ff6b9d,#b2ff59,#90caf9)"></div>
+      <div class="cb" data-bc="cyan" style="background:#00e5ff"></div>
+      <div class="cb" data-bc="amber" style="background:#ffb74d"></div>
+      <div class="cb" data-bc="rose" style="background:#ff6b9d"></div>
+      <div class="cb" data-bc="lime" style="background:#b2ff59"></div>
+      <div class="cb" data-bc="ice" style="background:#90caf9"></div>
+    </div>
   </div>
   <div class="cr" id="autorow" style="opacity:0.2;pointer-events:none">
     <label>Auto Cycle <span id="vacl">3:00</span></label>
@@ -162,7 +174,7 @@ var P = {
   bpm:128, scale:1, rot:1, drift:1, pulse:1, glow:1, den:1,
   ck:'cyan', shape:'rect',
   spiral:false, strobe:false, srate:1,
-  brand:true, bsize:1, bglow:0,
+  brand:true, bsize:1, bglow:0, bcol:'white',
   auto:true, autoCycle:180
 };
 
@@ -182,7 +194,6 @@ function rgba(c,a){ return 'rgba('+c[0]+','+c[1]+','+c[2]+','+a+')'; }
 var toastBox = document.getElementById('toasts');
 var toastTimer = null;
 function toast(msg){
-  /* Remove existing */
   var old = toastBox.querySelector('.toast');
   if(old) old.remove();
   clearTimeout(toastTimer);
@@ -220,7 +231,8 @@ function drawLogoCanvas(hW, hH){
   cx.ellipse(0, 0, hW - 1, hH - 1, 0, 0, Math.PI * 2);
   cx.stroke();
   var fs = Math.max(8, hH * 0.52);
-  cx.fillStyle = '#ffffff';
+  var tc = P.bcol === 'accent' ? PAL[P.ck].p : (PAL[P.bcol] ? PAL[P.bcol].p : [255,255,255]);
+  cx.fillStyle = rgba(tc, 1);
   cx.font = 'bold ' + fs + 'px "Courier New",monospace';
   cx.textAlign = 'center';
   cx.textBaseline = 'middle';
@@ -319,7 +331,6 @@ function mods(t){
 /* ── Autopilot System ── */
 var autoStart = 0;
 var autoPhases = [
-  /* Each phase: duration %, property, values to interpolate between, smoothstep */
   { dur: 0.15, prop: 'shape', values: null },
   { dur: 0.12, prop: 'rotation', from: 1, to: 2.5 },
   { dur: 0.10, prop: 'rotation', from: 2.5, to: 0.3 },
@@ -347,11 +358,10 @@ function smoothstep(t){
 
 function autopilotUpdate(el){
   if(!P.auto) return;
-  var elapsed = (el - autoStart) / 1000; // seconds
-  var totalDur = P.autoCycle; // seconds
-  var progress = (elapsed % totalDur) / totalDur; // 0→1 loop
+  var elapsed = (el - autoStart) / 1000;
+  var totalDur = P.autoCycle;
+  var progress = (elapsed % totalDur) / totalDur;
 
-  /* Find current phase */
   var acc = 0;
   for(var i = 0; i < autoPhases.length; i++){
     var ph = autoPhases[i];
@@ -362,7 +372,6 @@ function autopilotUpdate(el){
       var s = smoothstep(localT);
 
       if(ph.prop === 'shape'){
-        /* Change shape at midpoint */
         if(localT > 0.45 && localT < 0.55){
           var curIdx = SHAPES.indexOf(P.shape);
           var nextIdx = (curIdx + 1) % SHAPES.length;
@@ -391,7 +400,7 @@ function autopilotUpdate(el){
       else if(ph.prop === 'spiral'){
         if(localT > 0.4 && P.spiral !== ph.on){
           P.spiral = ph.on;
-          spBtn.classList.toggle('on', P.spiral);
+          document.getElementById('tspiral').classList.toggle('on', P.spiral);
           toast('Spiral: <span class="tv">' + (P.spiral ? 'ON' : 'OFF') + '</span>');
         }
       }
@@ -502,9 +511,13 @@ function drawBrand(el, ep){
   cx.shadowBlur = Math.min(P.bglow * 25, 60);
   if(logoIsImage) cx.drawImage(logoImg, -hW, -hH, hW * 2, hH * 2);
   else drawLogoCanvas(hW, hH);
+
+  var tcol = P.bcol === 'accent' ? PAL[P.ck].p : (PAL[P.bcol] ? PAL[P.bcol].p : [255,255,255]);
   cx.globalAlpha = 0.08 * P.bglow * brandFade;
   cx.globalCompositeOperation = 'screen';
-  cx.shadowBlur = 0;
+  cx.shadowColor = rgba(tcol, 0.6);
+  cx.shadowBlur = Math.min(P.bglow * 15, 40);
+  cx.shadowOffsetX = 0; cx.shadowOffsetY = 0;
   if(logoIsImage) cx.drawImage(logoImg, -hW, -hH, hW * 2, hH * 2);
   else drawLogoCanvas(hW, hH);
   cx.globalCompositeOperation = 'source-over';
@@ -522,7 +535,7 @@ var prevT = 0, startT = 0, lastDen = P.den;
 
 function loop(t){
   requestAnimationFrame(loop);
-  if(!startT) startT = t;
+  if(!startT){ startT = t; autoStart = t; }
   var dt = Math.min(t - prevT, 50);
   prevT = t;
   if(dt <= 0) return;
@@ -548,7 +561,6 @@ function loop(t){
   cx.globalAlpha = 1; cx.globalCompositeOperation = 'source-over'; cx.shadowBlur = 0;
   cx.fillStyle = '#000000'; cx.fillRect(0, 0, W, H);
 
-  /* Grid dots */
   var gs = 55 * P.scale;
   if(gs > 8){
     var ga = 0.02 + ep * 0.012, gr = 0.6 + ep * 0.4;
@@ -559,12 +571,10 @@ function loop(t){
         drawDot(gx, gy, gr, pal.s, ga);
   }
 
-  /* Vignette */
   var vg = cx.createRadialGradient(MX, MY, MD*0.15, MX, MY, MD*0.85);
   vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.5)');
   cx.globalAlpha = 1; cx.fillStyle = vg; cx.fillRect(0, 0, W, H);
 
-  /* Drifters */
   for(var i = 0; i < drifters.length; i++){
     var dr = drifters[i];
     dr.x += dr.vx * P.drift * (1 + m.dm) * ds * 60;
@@ -578,7 +588,6 @@ function loop(t){
       dr.op * (1 + m.om * 0.5) * (1 + ep * 0.3), 0.4, P.glow * 0.2, null);
   }
 
-  /* Ripples */
   ripples = ripples.filter(function(rp){
     rp.sz += MD * 0.0028 * ds * 60; rp.a *= Math.exp(-3.5 * ds);
     return rp.a > 0.002 && rp.sz < rp.mx;
@@ -591,7 +600,6 @@ function loop(t){
   if(P.spiral) drawSpiral(el, ep);
   if(brandFade > 0.001) drawBrand(el, ep);
 
-  /* Rings */
   var rBase = el * 0.001 * P.rot;
   for(var i = 0; i < rings.length; i++){
     var rn = rings[i];
@@ -606,7 +614,6 @@ function loop(t){
       P.glow * (0.4 + (1 - i / Math.max(1, rings.length)) * 0.6), rn.dash);
   }
 
-  /* Orbiters */
   for(var i = 0; i < orbs.length; i++){
     var ob = orbs[i];
     ob.oa += ob.os * P.rot * ds * (1 + m.rm * 0.2);
@@ -620,7 +627,6 @@ function loop(t){
       ob.op * depth * (1 + m.om * 0.2) * (1 + ep * 0.25), 0.6, P.glow * 0.35 * depth, null);
   }
 
-  /* Crosshair */
   if(brandFade < 0.5){
     var chS = 14 * P.scale, chA = (0.07 + ep * 0.08) * (1 - brandFade * 2);
     cx.save(); cx.strokeStyle = rgba(pal.p, 1); cx.lineWidth = 0.5;
@@ -634,7 +640,6 @@ function loop(t){
     cx.stroke(); cx.restore();
   }
 
-  /* Corner brackets */
   var bkS = 28 * P.scale, bkI = 36;
   cx.save(); cx.strokeStyle = rgba(pal.s, 1); cx.lineWidth = 0.7;
   cx.globalAlpha = 0.06 + ep * 0.04;
@@ -655,7 +660,6 @@ function loop(t){
     cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, W, H); cx.restore();
   }
 
-  /* Scan lines */
   cx.save(); cx.globalAlpha = 0.016; cx.fillStyle = '#000000';
   for(var sl = 0; sl < H; sl += 2) cx.fillRect(0, sl, W, 1);
   cx.restore();
@@ -685,6 +689,18 @@ function syncColorUI(){
   });
 }
 
+function syncBcolUI(){
+  document.querySelectorAll('.cb[data-bc]').forEach(function(b){
+    b.classList.toggle('on', b.dataset.bc === P.bcol);
+  });
+}
+
+function formatCycle(v){
+  var m = Math.floor(v / 60);
+  var s = Math.round(v % 60);
+  return m + ':' + (s < 10 ? '0' : '') + s;
+}
+
 function syncAllUI(){
   syncSlider('rb', P.bpm, 'vb');
   syncSlider('rs', P.scale, 'vs');
@@ -696,8 +712,10 @@ function syncAllUI(){
   syncSlider('rbs', P.bsize, 'vbs');
   syncSlider('rbg', P.bglow, 'vbg');
   syncSlider('racl', P.autoCycle, 'vacl');
+  document.getElementById('vacl').textContent = formatCycle(P.autoCycle);
   syncShapeUI();
   syncColorUI();
+  syncBcolUI();
   document.getElementById('tbrand').classList.toggle('on', P.brand);
   document.getElementById('tspiral').classList.toggle('on', P.spiral);
   document.getElementById('tstrobe').classList.toggle('on', P.strobe);
@@ -708,14 +726,10 @@ function syncAllUI(){
   document.getElementById('brandrow').style.pointerEvents = P.brand ? 'auto' : 'none';
   document.getElementById('brandgrow').style.opacity = P.brand ? '1' : '0.2';
   document.getElementById('brandgrow').style.pointerEvents = P.brand ? 'auto' : 'none';
+  document.getElementById('brandcolrow').style.opacity = P.brand ? '1' : '0.2';
+  document.getElementById('brandcolrow').style.pointerEvents = P.brand ? 'auto' : 'none';
   document.getElementById('autorow').style.opacity = P.auto ? '1' : '0.2';
   document.getElementById('autorow').style.pointerEvents = P.auto ? 'auto' : 'none';
-}
-
-function formatCycle(v){
-  var m = Math.floor(v / 60);
-  var s = Math.round(v % 60);
-  return m + ':' + (s < 10 ? '0' : '') + s;
 }
 
 /* ── Controls Panel ── */
@@ -731,9 +745,7 @@ function toggleCtrl(){
 }
 
 document.addEventListener('keydown', function(e){
-  /* Ignore if typing in an input */
   if(e.target.tagName === 'INPUT') return;
-
   switch(e.key){
     case 'h': case 'H': toggleCtrl(); break;
     case 'ArrowUp':
@@ -761,14 +773,10 @@ document.addEventListener('keydown', function(e){
       toast('Autopilot: <span class="tv">' + (P.auto ? 'ON' : 'OFF') + '</span>');
       break;
     case 's': case 'S':
-      if(!e.ctrlKey && !e.metaKey){
-        savePreset(1);
-        toast('Preset <span class="tv">1 SAVED</span>');
-      }
+      if(!e.ctrlKey && !e.metaKey){ savePreset(1); toast('Preset <span class="tv">1 SAVED</span>'); }
       break;
     case 'l': case 'L':
-      loadPreset(1);
-      break;
+      loadPreset(1); break;
     case 'b': case 'B':
       P.brand = !P.brand;
       document.getElementById('tbrand').classList.toggle('on', P.brand);
@@ -776,6 +784,8 @@ document.addEventListener('keydown', function(e){
       document.getElementById('brandrow').style.pointerEvents = P.brand ? 'auto' : 'none';
       document.getElementById('brandgrow').style.opacity = P.brand ? '1' : '0.2';
       document.getElementById('brandgrow').style.pointerEvents = P.brand ? 'auto' : 'none';
+      document.getElementById('brandcolrow').style.opacity = P.brand ? '1' : '0.2';
+      document.getElementById('brandcolrow').style.pointerEvents = P.brand ? 'auto' : 'none';
       toast('Brand: <span class="tv">' + (P.brand ? 'ON' : 'OFF') + '</span>');
       break;
   }
@@ -813,7 +823,7 @@ document.querySelectorAll('.sb[data-sh]').forEach(function(btn){
   });
 });
 
-/* Color buttons */
+/* Accent color buttons */
 document.querySelectorAll('.cb[data-k]').forEach(function(btn){
   btn.addEventListener('click', function(){
     document.querySelectorAll('.cb[data-k]').forEach(function(b){b.classList.remove('on')});
@@ -822,20 +832,25 @@ document.querySelectorAll('.cb[data-k]').forEach(function(btn){
   });
 });
 
-/* Toggle buttons */
-var spBtn = document.getElementById('tspiral');
-spBtn.addEventListener('click', function(){
-  P.spiral = !P.spiral; spBtn.classList.toggle('on', P.spiral);
+/* Logo colour buttons */
+document.querySelectorAll('.cb[data-bc]').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    document.querySelectorAll('.cb[data-bc]').forEach(function(b){b.classList.remove('on')});
+    btn.classList.add('on');
+    P.bcol = btn.dataset.bc;
+  });
 });
 
-var stBtn = document.getElementById('tstrobe');
-stBtn.addEventListener('click', function(){
-  P.strobe = !P.strobe; stBtn.classList.toggle('on', P.strobe);
+/* Toggle buttons */
+document.getElementById('tspiral').addEventListener('click', function(){
+  P.spiral = !P.spiral; this.classList.toggle('on', P.spiral);
+});
+document.getElementById('tstrobe').addEventListener('click', function(){
+  P.strobe = !P.strobe; this.classList.toggle('on', P.strobe);
   document.getElementById('sraterow').style.opacity = P.strobe ? '1' : '0.2';
   document.getElementById('sraterow').style.pointerEvents = P.strobe ? 'auto' : 'none';
   if(!P.strobe) strobeFlash = 0;
 });
-
 document.querySelectorAll('.sb[data-sr]').forEach(function(btn){
   btn.addEventListener('click', function(){
     document.querySelectorAll('.sb[data-sr]').forEach(function(b){b.classList.remove('on')});
@@ -843,22 +858,19 @@ document.querySelectorAll('.sb[data-sr]').forEach(function(btn){
     P.srate = parseInt(btn.dataset.sr);
   });
 });
-
-var brBtn = document.getElementById('tbrand');
-brBtn.addEventListener('click', function(){
-  P.brand = !P.brand;
-  brBtn.classList.toggle('on', P.brand);
+document.getElementById('tbrand').addEventListener('click', function(){
+  P.brand = !P.brand; this.classList.toggle('on', P.brand);
   document.getElementById('brandrow').style.opacity = P.brand ? '1' : '0.2';
   document.getElementById('brandrow').style.pointerEvents = P.brand ? 'auto' : 'none';
   document.getElementById('brandgrow').style.opacity = P.brand ? '1' : '0.2';
   document.getElementById('brandgrow').style.pointerEvents = P.brand ? 'auto' : 'none';
+  document.getElementById('brandcolrow').style.opacity = P.brand ? '1' : '0.2';
+  document.getElementById('brandcolrow').style.pointerEvents = P.brand ? 'auto' : 'none';
 });
-
-var auBtn = document.getElementById('tauto');
-auBtn.addEventListener('click', function(){
+document.getElementById('tauto').addEventListener('click', function(){
   P.auto = !P.auto;
   if(P.auto) autoStart = performance.now();
-  auBtn.classList.toggle('on', P.auto);
+  this.classList.toggle('on', P.auto);
   document.getElementById('autorow').style.opacity = P.auto ? '1' : '0.2';
   document.getElementById('autorow').style.pointerEvents = P.auto ? 'auto' : 'none';
 });
@@ -866,32 +878,28 @@ auBtn.addEventListener('click', function(){
 /* ── Presets ── */
 function getPresetObj(){
   return {
-    bpm: P.bpm, scale: P.scale, rot: P.rot, drift: P.drift,
-    pulse: P.pulse, glow: P.glow, den: P.den,
-    ck: P.ck, shape: P.shape,
-    spiral: P.spiral, strobe: P.strobe, srate: P.srate,
-    brand: P.brand, bsize: P.bsize, bglow: P.bglow,
-    auto: P.auto, autoCycle: P.autoCycle
+    bpm:P.bpm, scale:P.scale, rot:P.rot, drift:P.drift,
+    pulse:P.pulse, glow:P.glow, den:P.den,
+    ck:P.ck, shape:P.shape,
+    spiral:P.spiral, strobe:P.strobe, srate:P.srate,
+    brand:P.brand, bsize:P.bsize, bglow:P.bglow, bcol:P.bcol,
+    auto:P.auto, autoCycle:P.autoCycle
   };
 }
-
 function savePreset(n){
-  try { localStorage.setItem('rgvfx_preset_' + n, JSON.stringify(getPresetObj())); }
-  catch(e){}
+  try{ localStorage.setItem('rgvfx_preset_'+n, JSON.stringify(getPresetObj())); }catch(e){}
 }
-
 function loadPreset(n){
-  try {
-    var raw = localStorage.getItem('rgvfx_preset_' + n);
-    if(!raw){ toast('Preset <span class="tv">' + n + ' EMPTY</span>'); return; }
+  try{
+    var raw = localStorage.getItem('rgvfx_preset_'+n);
+    if(!raw){ toast('Preset <span class="tv">'+n+' EMPTY</span>'); return; }
     var obj = JSON.parse(raw);
     Object.keys(obj).forEach(function(k){ if(k in P) P[k] = obj[k]; });
     if(P.auto) autoStart = performance.now();
     syncAllUI();
-    toast('Preset <span class="tv">' + n + ' LOADED</span>');
-  } catch(e){ toast('Preset <span class="tv">' + n + ' ERROR</span>'); }
+    toast('Preset <span class="tv">'+n+' LOADED</span>');
+  }catch(e){ toast('Preset <span class="tv">'+n+' ERROR</span>'); }
 }
-
 document.getElementById('btnsave').addEventListener('click', function(){ savePreset(1); toast('Preset <span class="tv">1 SAVED</span>'); });
 document.getElementById('btnload').addEventListener('click', function(){ loadPreset(1); });
 document.getElementById('btnsave2').addEventListener('click', function(){ savePreset(2); toast('Preset <span class="tv">2 SAVED</span>'); });
@@ -899,7 +907,6 @@ document.getElementById('btnload2').addEventListener('click', function(){ loadPr
 document.getElementById('btnsave3').addEventListener('click', function(){ savePreset(3); toast('Preset <span class="tv">3 SAVED</span>'); });
 document.getElementById('btnload3').addEventListener('click', function(){ loadPreset(3); });
 
-/* Format initial cycle display */
 document.getElementById('vacl').textContent = formatCycle(P.autoCycle);
 
 })();
