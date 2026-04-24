@@ -201,6 +201,9 @@ var CKS = Object.keys(PAL);
 var SHAPES = ['rect','square','tri','circle','diamond','pentagon','hexagon','star'];
 function rgba(c,a){ return 'rgba('+c[0]+','+c[1]+','+c[2]+','+a+')'; }
 
+/* Shadow blur helper — compensates for DPR so glow looks identical to 1x */
+function sblur(v){ cx.shadowBlur = Math.min(v * DPR, 120); }
+
 /* ── Toasts ── */
 var toastBox = document.getElementById('toasts');
 var toastTimer = null;
@@ -209,8 +212,7 @@ function toast(msg){
   if(old) old.remove();
   clearTimeout(toastTimer);
   var el = document.createElement('div');
-  el.className = 'toast';
-  el.innerHTML = msg;
+  el.className = 'toast'; el.innerHTML = msg;
   toastBox.appendChild(el);
   requestAnimationFrame(function(){ el.classList.add('show'); });
   toastTimer = setTimeout(function(){
@@ -242,7 +244,8 @@ function drawLogoCanvas(hW, hH){
   cx.ellipse(0, 0, hW - 1, hH - 1, 0, 0, Math.PI * 2);
   cx.stroke();
   var fs = Math.max(8, hH * 0.52);
-  cx.fillStyle = '#ffffff';
+  var tc = P.bcol === 'accent' ? PAL[P.ck].p : (PAL[P.bcol] ? PAL[P.bcol].p : [255,255,255]);
+  cx.fillStyle = rgba(tc, 1);
   cx.font = 'bold ' + fs + 'px "Courier New",monospace';
   cx.textAlign = 'center';
   cx.textBaseline = 'middle';
@@ -360,7 +363,6 @@ var autoPhases = [
   { dur: 0.08, prop: 'rotation', from: 2.2, to: 1.0 },
   { dur: 0.10, prop: 'color' },
 ];
-
 function smoothstep(t){ t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); }
 
 function autopilotUpdate(el){
@@ -370,8 +372,7 @@ function autopilotUpdate(el){
   var acc = 0;
   for(var i = 0; i < autoPhases.length; i++){
     var ph = autoPhases[i];
-    var phStart = acc;
-    var phEnd = acc + ph.dur;
+    var phStart = acc, phEnd = acc + ph.dur;
     if(progress >= phStart && progress < phEnd){
       var localT = (progress - phStart) / ph.dur;
       var s = smoothstep(localT);
@@ -399,26 +400,23 @@ function autopilotUpdate(el){
   }
 }
 
-/* ── Polygon Helper ── */
+/* ── Polygon Helpers ── */
 function drawPoly(sides, radius){
   cx.beginPath();
   for(var i = 0; i <= sides; i++){
     var a = (i / sides) * Math.PI * 2 - Math.PI / 2;
-    var px = Math.cos(a) * radius;
-    var py = Math.sin(a) * radius;
-    if(i === 0) cx.moveTo(px, py); else cx.lineTo(px, py);
+    if(i === 0) cx.moveTo(Math.cos(a) * radius, Math.sin(a) * radius);
+    else cx.lineTo(Math.cos(a) * radius, Math.sin(a) * radius);
   }
   cx.closePath();
 }
-
-function drawStar(points, outerR, innerR){
+function drawStar(pts, outerR, innerR){
   cx.beginPath();
-  for(var i = 0; i <= points * 2; i++){
-    var a = (i / (points * 2)) * Math.PI * 2 - Math.PI / 2;
+  for(var i = 0; i <= pts * 2; i++){
+    var a = (i / (pts * 2)) * Math.PI * 2 - Math.PI / 2;
     var r = i % 2 === 0 ? outerR : innerR;
-    var px = Math.cos(a) * r;
-    var py = Math.sin(a) * r;
-    if(i === 0) cx.moveTo(px, py); else cx.lineTo(px, py);
+    if(i === 0) cx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+    else cx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
   }
   cx.closePath();
 }
@@ -429,44 +427,23 @@ function wireShape(x, y, w, h, rot, shape, col, a, lw, blur, dash){
   cx.translate(x, y);
   cx.rotate(rot);
   cx.globalAlpha = Math.max(0, Math.min(1, a));
-  if(blur > 0){ cx.shadowColor = rgba(col, 0.7); cx.shadowBlur = Math.min(blur * 14, 32); }
+  if(blur > 0){ cx.shadowColor = rgba(col, 0.7); sblur(blur * 14); }
   cx.strokeStyle = rgba(col, 1);
   cx.lineWidth = lw;
   if(dash) cx.setLineDash(dash);
   cx.beginPath();
   var r = Math.max(0.5, Math.min(w, h) / 2);
   switch(shape){
-    case 'rect':
-      cx.rect(-w/2, -h/2, w, h);
-      break;
-    case 'square':
-      cx.rect(-r, -r, r*2, r*2);
-      break;
+    case 'rect': cx.rect(-w/2, -h/2, w, h); break;
+    case 'square': cx.rect(-r, -r, r*2, r*2); break;
     case 'tri':
-      cx.moveTo(0, -r);
-      cx.lineTo(r * 0.866, r * 0.5);
-      cx.lineTo(-r * 0.866, r * 0.5);
-      cx.closePath();
-      break;
-    case 'circle':
-      cx.arc(0, 0, r, 0, Math.PI * 2);
-      break;
+      cx.moveTo(0, -r); cx.lineTo(r*0.866, r*0.5); cx.lineTo(-r*0.866, r*0.5); cx.closePath(); break;
+    case 'circle': cx.arc(0, 0, r, 0, Math.PI*2); break;
     case 'diamond':
-      cx.moveTo(0, -r);
-      cx.lineTo(r * 0.6, 0);
-      cx.lineTo(0, r);
-      cx.lineTo(-r * 0.6, 0);
-      cx.closePath();
-      break;
-    case 'pentagon':
-      drawPoly(5, r);
-      break;
-    case 'hexagon':
-      drawPoly(6, r);
-      break;
-    case 'star':
-      drawStar(5, r, r * 0.4);
-      break;
+      cx.moveTo(0, -r); cx.lineTo(r*0.6, 0); cx.lineTo(0, r); cx.lineTo(-r*0.6, 0); cx.closePath(); break;
+    case 'pentagon': drawPoly(5, r); break;
+    case 'hexagon': drawPoly(6, r); break;
+    case 'star': drawStar(5, r, r*0.4); break;
   }
   cx.stroke();
   if(dash) cx.setLineDash([]);
@@ -495,7 +472,7 @@ function drawSpiral(el, ep){
     cx.save(); cx.translate(MX, MY); cx.rotate(baseRot + off);
     cx.globalAlpha = 0.09 + ep * 0.08;
     cx.strokeStyle = rgba(pal.p, 1); cx.lineWidth = 0.8;
-    cx.shadowColor = rgba(pal.p, 0.5); cx.shadowBlur = Math.min(P.glow * 10, 30);
+    cx.shadowColor = rgba(pal.p, 0.5); sblur(P.glow * 10);
     cx.beginPath();
     for(var i = 0; i <= pts; i++){
       var t = i / pts;
@@ -534,7 +511,7 @@ function drawBrand(el, ep){
     cx.strokeStyle = rgba(pal.p, 1);
     cx.lineWidth = 0.5 + (2 - i) * 0.2;
     cx.shadowColor = rgba(pal.p, 0.45);
-    cx.shadowBlur = Math.min(P.bglow * (8 + i * 3), 35);
+    sblur(P.bglow * (8 + i * 3));
     cx.beginPath(); cx.ellipse(0, 0, hW * sc, hH * sc, 0, 0, Math.PI * 2); cx.stroke();
     cx.restore();
   }
@@ -549,7 +526,7 @@ function drawBrand(el, ep){
   cx.save(); cx.translate(MX, MY);
   cx.globalAlpha = (0.88 + ep * 0.12) * brandFade;
   cx.shadowColor = rgba(pal.p, 0.85);
-  cx.shadowBlur = Math.min(P.bglow * 25, 60);
+  sblur(P.bglow * 25);
   if(logoIsImage) cx.drawImage(logoImg, -hW, -hH, hW * 2, hH * 2);
   else drawLogoCanvas(hW, hH);
 
@@ -557,7 +534,7 @@ function drawBrand(el, ep){
   cx.globalAlpha = 0.08 * P.bglow * brandFade;
   cx.globalCompositeOperation = 'screen';
   cx.shadowColor = rgba(tcol, 0.6);
-  cx.shadowBlur = Math.min(P.bglow * 15, 40);
+  sblur(P.bglow * 15);
   cx.shadowOffsetX = 0; cx.shadowOffsetY = 0;
   if(logoIsImage) cx.drawImage(logoImg, -hW, -hH, hW * 2, hH * 2);
   else drawLogoCanvas(hW, hH);
@@ -606,7 +583,6 @@ function loop(t){
   if(gs > 8){
     var ga = 0.02 + ep * 0.012, gr = 0.6 + ep * 0.4;
     var sx = MX % gs, sy = MY % gs;
-    cx.shadowBlur = 0;
     for(var gx = sx; gx < W; gx += gs)
       for(var gy = sy; gy < H; gy += gs)
         drawDot(gx, gy, gr, pal.s, ga);
@@ -672,7 +648,7 @@ function loop(t){
     var chS = 14 * P.scale, chA = (0.07 + ep * 0.08) * (1 - brandFade * 2);
     cx.save(); cx.strokeStyle = rgba(pal.p, 1); cx.lineWidth = 0.5;
     cx.globalAlpha = Math.max(0, chA);
-    if(P.glow > 0){ cx.shadowColor = rgba(pal.p, 0.5); cx.shadowBlur = P.glow * 6; }
+    if(P.glow > 0){ cx.shadowColor = rgba(pal.p, 0.5); sblur(P.glow * 6); }
     cx.beginPath();
     cx.moveTo(MX - chS, MY); cx.lineTo(MX - 3, MY);
     cx.moveTo(MX + 3, MY); cx.lineTo(MX + chS, MY);
@@ -684,7 +660,7 @@ function loop(t){
   var bkS = 28 * P.scale, bkI = 36;
   cx.save(); cx.strokeStyle = rgba(pal.s, 1); cx.lineWidth = 0.7;
   cx.globalAlpha = 0.06 + ep * 0.04;
-  if(P.glow > 0){ cx.shadowColor = rgba(pal.s, 0.4); cx.shadowBlur = P.glow * 3; }
+  if(P.glow > 0){ cx.shadowColor = rgba(pal.s, 0.4); sblur(P.glow * 3); }
   cx.beginPath();
   cx.moveTo(bkI, bkI + bkS); cx.lineTo(bkI, bkI); cx.lineTo(bkI + bkS, bkI);
   cx.moveTo(W - bkI - bkS, bkI); cx.lineTo(W - bkI, bkI); cx.lineTo(W - bkI, bkI + bkS);
@@ -712,41 +688,29 @@ requestAnimationFrame(loop);
 
 /* ── UI Sync ── */
 function syncSlider(rid, val, vid){
-  var sl = document.getElementById(rid);
-  var vl = document.getElementById(vid);
+  var sl = document.getElementById(rid), vl = document.getElementById(vid);
   if(sl) sl.value = val;
   if(vl) vl.textContent = val.toFixed(val >= 100 ? 0 : 1);
 }
 function syncShapeUI(){
-  document.querySelectorAll('.sb[data-sh]').forEach(function(b){
-    b.classList.toggle('on', b.dataset.sh === P.shape);
-  });
+  document.querySelectorAll('.sb[data-sh]').forEach(function(b){ b.classList.toggle('on', b.dataset.sh === P.shape); });
 }
 function syncColorUI(){
-  document.querySelectorAll('.cb[data-k]').forEach(function(b){
-    b.classList.toggle('on', b.dataset.k === P.ck);
-  });
+  document.querySelectorAll('.cb[data-k]').forEach(function(b){ b.classList.toggle('on', b.dataset.k === P.ck); });
 }
 function syncBcolUI(){
-  document.querySelectorAll('.cb[data-bc]').forEach(function(b){
-    b.classList.toggle('on', b.dataset.bc === P.bcol);
-  });
+  document.querySelectorAll('.cb[data-bc]').forEach(function(b){ b.classList.toggle('on', b.dataset.bc === P.bcol); });
 }
 function formatCycle(v){
   var m = Math.floor(v / 60), s = Math.round(v % 60);
   return m + ':' + (s < 10 ? '0' : '') + s;
 }
 function syncAllUI(){
-  syncSlider('rb', P.bpm, 'vb');
-  syncSlider('rs', P.scale, 'vs');
-  syncSlider('rr', P.rot, 'vr');
-  syncSlider('rd', P.drift, 'vd');
-  syncSlider('rp', P.pulse, 'vp');
-  syncSlider('rg', P.glow, 'vg');
-  syncSlider('rn', P.den, 'vn');
-  syncSlider('rbs', P.bsize, 'vbs');
-  syncSlider('rbg', P.bglow, 'vbg');
-  syncSlider('racl', P.autoCycle, 'vacl');
+  syncSlider('rb', P.bpm, 'vb'); syncSlider('rs', P.scale, 'vs');
+  syncSlider('rr', P.rot, 'vr'); syncSlider('rd', P.drift, 'vd');
+  syncSlider('rp', P.pulse, 'vp'); syncSlider('rg', P.glow, 'vg');
+  syncSlider('rn', P.den, 'vn'); syncSlider('rbs', P.bsize, 'vbs');
+  syncSlider('rbg', P.bglow, 'vbg'); syncSlider('racl', P.autoCycle, 'vacl');
   document.getElementById('vacl').textContent = formatCycle(P.autoCycle);
   syncShapeUI(); syncColorUI(); syncBcolUI();
   document.getElementById('tbrand').classList.toggle('on', P.brand);
@@ -769,14 +733,12 @@ function syncAllUI(){
 var ctrlEl = document.getElementById('ctrl');
 var hintEl = document.getElementById('hint');
 var ctrlOn = false;
-
 function toggleCtrl(){
   ctrlOn = !ctrlOn;
   ctrlEl.classList.toggle('off', !ctrlOn);
   document.body.style.cursor = ctrlOn ? 'default' : 'none';
   hintEl.style.opacity = '0';
 }
-
 document.addEventListener('keydown', function(e){
   if(e.target.tagName === 'INPUT') return;
   switch(e.key){
@@ -821,22 +783,17 @@ setTimeout(function(){ hintEl.style.opacity = '0'; }, 7000);
 
 /* Sliders */
 function bindSlider(rid, key, vid, fmt){
-  var sl = document.getElementById('r' + rid);
-  var vl = document.getElementById('v' + vid);
+  var sl = document.getElementById('r' + rid), vl = document.getElementById('v' + vid);
   sl.addEventListener('input', function(){
     var v = parseFloat(sl.value); P[key] = v;
     vl.textContent = fmt ? fmt(v) : v.toFixed(v >= 100 ? 0 : 1);
   });
 }
 bindSlider('b','bpm','b', function(v){return v.toFixed(0)});
-bindSlider('s','scale','s');
-bindSlider('r','rot','r');
-bindSlider('d','drift','d');
-bindSlider('p','pulse','p');
-bindSlider('g','glow','g');
-bindSlider('n','den','n');
-bindSlider('bs','bsize','bs');
-bindSlider('bg','bglow','bg');
+bindSlider('s','scale','s'); bindSlider('r','rot','r');
+bindSlider('d','drift','d'); bindSlider('p','pulse','p');
+bindSlider('g','glow','g'); bindSlider('n','den','n');
+bindSlider('bs','bsize','bs'); bindSlider('bg','bglow','bg');
 bindSlider('acl','autoCycle','vacl', function(v){ return formatCycle(v); });
 
 /* Shape buttons */
@@ -846,7 +803,6 @@ document.querySelectorAll('.sb[data-sh]').forEach(function(btn){
     btn.classList.add('on'); P.shape = btn.dataset.sh;
   });
 });
-
 /* Accent color */
 document.querySelectorAll('.cb[data-k]').forEach(function(btn){
   btn.addEventListener('click', function(){
@@ -854,7 +810,6 @@ document.querySelectorAll('.cb[data-k]').forEach(function(btn){
     btn.classList.add('on'); P.ck = btn.dataset.k;
   });
 });
-
 /* Logo colour */
 document.querySelectorAll('.cb[data-bc]').forEach(function(btn){
   btn.addEventListener('click', function(){
